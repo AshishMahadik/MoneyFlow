@@ -1,0 +1,580 @@
+<div class="dashboard-wrapper">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">M</div>
+      <span>MoneyFlow</span>
+    </div>
+    <nav class="side-nav">
+      <a class="nav-item active" routerLink="/">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z" /></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" routerLink="/transactions">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z" /></svg>
+        Transactions
+      </a>
+      <a class="nav-item" routerLink="/todos">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M7,10L12,15L17,10H7Z" /></svg>
+        Todo Tasks
+      </a>
+    </nav>
+    <div class="currency-selector" data-tooltip="Change the currency for all displays">
+      <label>Display Currency</label>
+      <div class="currency-pills">
+        @for (c of currencies; track c) {
+          <button 
+            [class.active]="currentCurrency() === c" 
+            (click)="setCurrency(c)"
+          >{{ c }}</button>
+        }
+      </div>
+    </div>
+
+    <div class="theme-toggle-section">
+      <label>Appearance</label>
+      <button class="theme-toggle-btn" (click)="themeService.toggleTheme()" [attr.data-tooltip]="themeService.isDarkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+        @if (themeService.isDarkMode()) {
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" /></svg>
+          Dark Mode
+        } @else {
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,4.39L12,6.78L9.61,4.39L12,2M5.64,7.05L7.05,5.64L8.46,7.05L7.05,8.46L5.64,7.05M21,12L18.61,9.61L16.22,12L18.61,14.39L21,12M18.36,16.95L16.95,18.36L15.54,16.95L16.95,15.54L18.36,16.95M12,22L9.61,19.61L12,17.22L14.39,19.61L12,22M5.64,16.95L7.05,18.36L8.46,16.95L7.05,15.54L5.64,16.95M3,12L5.39,14.39L7.78,12L5.39,9.61L3,12M18.36,7.05L16.95,5.64L15.54,7.05L16.95,8.46L18.36,7.05Z" /></svg>
+          Light Mode
+        }
+      </button>
+    </div>
+  </aside>
+
+  <main class="dashboard-content">
+    <header class="top-bar">
+      <div class="welcome">
+        <h2>Dashboard</h2>
+        <p>Welcome back, here's your spending overview.</p>
+      </div>
+      <div class="top-stats">
+        <div class="top-stat" data-tooltip="Total amount spent since using the app">
+          <span class="label">Total Expenses</span>
+          <span class="value">{{ getCurrencySymbol(currentCurrency()) }}{{ totalAmount() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="bento-grid">
+      <!-- Row 1: Budget, Quick Add, Recent -->
+      <div class="grid-card budget-card" data-tooltip="Overview of your financial limits and health">
+        <div class="budget-header">
+          <h3>Budget</h3>
+          <div class="limit-input" data-tooltip="Set your total budget for the month">
+            <span>{{ getCurrencySymbol(currentCurrency()) }}</span>
+            <input type="number" [(ngModel)]="limitInput" (blur)="updateLimit()" placeholder="Set Limit">
+          </div>
+        </div>
+        
+        <div class="budget-stats">
+          <div class="stat-item" data-tooltip="Safe spending amount per day based on your budget">
+            <span class="label">Daily Limit</span>
+            <span class="value">{{ getCurrencySymbol(currentCurrency()) }}{{ dailyLimit() | number:'1.2-2' }}</span>
+          </div>
+          <div class="stat-item" data-tooltip="Total amount you have spent so far this month">
+            <span class="label">Monthly Spent</span>
+            <span class="value">{{ getCurrencySymbol(currentCurrency()) }}{{ monthlySpent() | number:'1.2-2' }}</span>
+          </div>
+          <div class="stat-item highlight" [class.negative]="availableToday() < 0" data-tooltip="Remaining daily budget. Resets every midnight.">
+            <span class="label">{{ availableToday() < 0 ? 'Overspent Today' : 'Available Today' }}</span>
+            <span class="value">{{ getCurrencySymbol(currentCurrency()) }}{{ (availableToday() < 0 ? -availableToday() : availableToday()) | number:'1.2-2' }}</span>
+          </div>
+          <div class="stat-item savings" [class.negative]="savingsThisMonth() < 0" data-tooltip="Calculated savings or overspend based on elapsed days">
+            <span class="label">{{ (savingsThisMonth() < 0 || monthlyLimit() <= 0) ? 'Monthly Overspend' : 'Monthly Savings' }}</span>
+            @if (monthlyLimit() > 0) {
+              <span class="value">{{ savingsThisMonth() >= 0 ? '+' : '-' }}{{ getCurrencySymbol(currentCurrency()) }}{{ (savingsThisMonth() < 0 ? -savingsThisMonth() : savingsThisMonth()) | number:'1.2-2' }}</span>
+            } @else {
+              <span class="value" style="font-size: 14px; opacity: 0.6;">No Budget Set</span>
+            }
+            <span class="calculation">{{ savingsBreakdown() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-card form-card" data-tooltip="Quickly log a new transaction">
+        <h3>{{ editingId() ? 'Edit Transaction' : 'Quick Add' }}</h3>
+        <form (submit)="addOrUpdateExpense()" class="modern-form">
+          <div class="input-field custom-autocomplete">
+            <div class="search-input-wrapper">
+              <svg viewBox="0 0 24 24" width="20" height="20" class="input-search-icon"><path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" /></svg>
+              <input 
+                type="text" 
+                [ngModel]="description()" 
+                (ngModelChange)="description.set($event)"
+                name="description" 
+                placeholder="What did you spend on?" 
+                (focus)="isDescOpen.set(true)"
+                (blur)="isDescOpen.set(false)"
+                (keydown)="onKeyDown($event)"
+                autocomplete="off"
+                required>
+            </div>
+            @if (isDescOpen() && filteredSuggestions().length > 0) {
+              <div class="autocomplete-menu liquid-glass">
+                <div class="suggestion-label">Suggested</div>
+                @for (sug of filteredSuggestions(); track sug; let i = $index) {
+                  <div class="suggestion-item" 
+                       [class.keyboard-active]="i === selectedSuggestionIndex()"
+                       (mousedown)="selectSuggestion(sug)">
+                    <svg viewBox="0 0 24 24" width="16" height="16" class="search-icon"><path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" /></svg>
+                    <span>{{ sug }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="form-row">
+            <div class="input-field">
+              <input type="date" [(ngModel)]="date" name="date" required>
+            </div>
+            <div class="input-field custom-dropdown">
+              <div class="dropdown-trigger" (click)="isCategoryOpen.set(!isCategoryOpen()); isInstrumentOpen.set(false)">
+                <span>{{ category }}</span>
+                <svg viewBox="0 0 24 24" width="20" height="20" [class.open]="isCategoryOpen()"><path fill="currentColor" d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" /></svg>
+              </div>
+              @if (isCategoryOpen()) {
+                <div class="dropdown-menu liquid-glass">
+                  @for (cat of categories; track cat) {
+                    <div class="dropdown-item" (click)="selectCategory(cat)" [class.active]="category === cat">
+                      {{ cat }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="input-field custom-dropdown">
+              <div class="dropdown-trigger" (click)="isInstrumentOpen.set(!isInstrumentOpen()); isCategoryOpen.set(false)">
+                <span>{{ getInstrumentName(selectedInstrumentId()) }}</span>
+                <svg viewBox="0 0 24 24" width="20" height="20" [class.open]="isInstrumentOpen()"><path fill="currentColor" d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" /></svg>
+              </div>
+              @if (isInstrumentOpen()) {
+                <div class="dropdown-menu liquid-glass">
+                  <div class="manage-methods-header">
+                    <span>Select Method</span>
+                  </div>
+                  @for (inst of paymentInstruments(); track inst.id) {
+                    <div class="dropdown-item" (click)="selectInstrument(inst.id)" [class.active]="selectedInstrumentId() === inst.id">
+                      <div class="inst-info">
+                        <span class="inst-name">{{ inst.name }}</span>
+                        <span class="inst-type">{{ inst.type }} {{ inst.accountName ? '• ' + inst.accountName : '' }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="input-field">
+              <input type="number" [(ngModel)]="amount" name="amount" placeholder="Amount" step="0.01" required>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            @if (editingId()) {
+              <button type="button" class="cancel-btn" (click)="resetForm()">Cancel</button>
+            }
+            <button type="submit" class="submit-btn">{{ editingId() ? 'Update' : 'Add Expense' }}</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="grid-card methods-card" data-tooltip="Manage your cards, accounts and UPI IDs">
+        <div class="card-header methods-header">
+          <h3>Payment Methods</h3>
+          <button class="add-method-inline" (click)="isInstrumentModalOpen.set(true)">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" /></svg>
+            Add
+          </button>
+        </div>
+
+        @if (methodUsageSummary(); as summary) {
+          <div class="methods-summary-top">
+            <div class="summary-pill">
+              <span class="label">Total</span>
+              <span class="value">{{ summary.totalCount }}</span>
+            </div>
+            @if (summary.mostUsed) {
+              <div class="summary-pill highlight" [attr.data-tooltip]="'Used in ' + summary.usageCount + ' transactions'">
+                <span class="label">Top Method</span>
+                <span class="value">{{ summary.mostUsed.name }}</span>
+              </div>
+            }
+          </div>
+        }
+
+        <div class="methods-list scroll-list-small">
+          @for (inst of paymentInstruments(); track inst.id) {
+            <div class="method-management-item" [class.selected]="selectedInstrumentId() === inst.id">
+              <div class="m-col-icon" (click)="selectInstrument(inst.id)">
+                <div class="method-icon-bg">
+                  @switch (inst.type) {
+                    @case ('Cash') { <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3,6H21V18H3V6M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M7,8A2,2 0 0,1 5,10V14A2,2 0 0,1 7,16H17A2,2 0 0,1 19,14V10A2,2 0 0,1 17,8H7Z" /></svg> }
+                    @case ('Credit Card') { <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M20,8H4V6H20V8M20,18H4V12H20V18M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z" /></svg> }
+                    @case ('Debit Card') { <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M20,8H4V6H20V8M20,18H4V12H20V18M20,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6C22,4.89 21.1,4 20,4Z" /></svg> }
+                    @case ('UPI') { <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z" /></svg> }
+                    @case ('Net Banking') { <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12,21L15.6,16.2L12,11.4L8.4,16.2L12,21M12,3L8.4,7.8L12,12.6L15.6,7.8L12,3M19,12L14.2,8.4L9.4,12L14.2,15.6L19,12M5,12L9.8,15.6L14.6,12L9.8,8.4L5,12Z" /></svg> }
+                  }
+                </div>
+              </div>
+              <div class="m-col-details" (click)="selectInstrument(inst.id)">
+                <div class="method-text">
+                  <span class="m-name">{{ inst.name }}</span>
+                  <span class="m-sub">{{ inst.type }} {{ inst.accountName ? '• ' + inst.accountName : '' }}</span>
+                </div>
+              </div>
+              <div class="m-col-actions">
+                <div class="method-actions">
+                  <button class="m-action edit" (click)="editInstrument(inst)" title="Edit">
+                    <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.07,6.18L3,17.25Z" /></svg>
+                  </button>
+                  @if (inst.id !== '1') {
+                    <button class="m-action delete" (click)="removeInstrument(inst.id, $event)" title="Delete">
+                      <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" /></svg>
+                    </button>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="grid-card list-card scroll-list minimal" data-tooltip="A history of your most recent transactions">
+        <div class="card-header list-header">
+          <h3>Recent</h3>
+          <button class="view-all-btn" routerLink="/transactions">View All</button>
+        </div>
+        <div class="transaction-list">
+          @if (expenses().length > 0) {
+            @for (exp of expenses().slice(0, 5); track exp.id) {
+              <div class="transaction-item mini" (click)="editExpense(exp)">
+                <div class="item-left">
+                  <div class="category-icon" [attr.data-category]="exp.category">
+                    @switch (exp.category) {
+                      @case ('Food') { <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M11,9H9V2H7V9H5V2H3V9C3,11.12 4.66,12.84 6.75,12.97V22H9.25V12.97C11.34,12.84 13,11.12 13,9V2H11V9M16,6V14H18.5V22H21V2C18.24,2 16,4.24 16,6Z" /></svg> }
+                      @case ('Travel') { <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M21,16.5C21,16.88 20.79,17.21 20.47,17.38L12.57,21.82C12.41,21.94 12.21,22 12,22C11.79,22 11.59,21.94 11.43,21.82L3.53,17.38C3.21,17.21 3,16.88 3,16.5V7.5C3,7.12 3.21,6.79 3.53,6.62L11.43,2.18C11.59,2.06 11.79,2 12,2C12.21,2 12.41,2.06 12.57,2.18L20.47,6.62C20.79,6.79 21,7.12 21,7.5V16.5Z" /></svg> }
+                      @case ('Utilities') { <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z" /></svg> }
+                      @case ('Shopping') { <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M17,18A2,2 0 0,1 19,20A2,2 0 0,1 17,22C15.89,22 15,21.1 15,20C15,18.89 15.89,18 17,18M1,2H4.27L5.21,4H20A1,1 0 0,1 21,5C21,5.17 20.95,5.34 20.88,5.5L17.3,12C16.94,12.62 16.27,13 15.55,13H8.1L7.2,14.63L7.17,14.75A0.25,0.25 0 0,0 7.42,15H19V17H7A2,2 0 0,1 5,15C5,14.65 5.07,14.31 5.24,14L6.6,11.59L3,4H1V2M7,18A2,2 0 0,1 9,20A2,2 0 0,1 7,22C5.89,22 5,21.1 5,20C5,18.89 5.89,18 7,18M16,11L18.78,6H6.14L8.5,11H16Z" /></svg> }
+                      @case ('Entertainment') { <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M18,3V5H15V3H9V5H6V3H4V21H6V19H9V21H15V19H18V21H20V3H18M6,17H4V15H6V17M6,13H4V11H6V13M6,9H4V7H6V9M11,19H9V17H11V19M11,15H9V13H11V15M11,11H9V9H11V11M11,7H9V5H11V7M15,19H13V17H15V19M15,15H13V13H15V15M15,11H13V9H15V11M15,7H13V5H15V7M20,17H18V15H20V17M20,13H18V11H20V13M20,9H18V7H20V9Z" /></svg> }
+                      @default { <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z" /></svg> }
+                    }
+                  </div>
+                  <div class="details">
+                    <span class="desc">{{ exp.description }}</span>
+                    <div class="sub-details">
+                      <span class="cat">{{ exp.category }}</span>
+                      <span class="sep">•</span>
+                      <span class="acc">{{ exp.paymentMethodName || exp.paymentType || 'Cash' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="amount-group">
+                  <span class="val">{{ getCurrencySymbol(currentCurrency()) }}{{ exp.amount | number:'1.2-2' }}</span>
+                  <button class="delete-mini" (click)="$event.stopPropagation(); removeExpense(exp.id)">
+                    <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" /></svg>
+                  </button>
+                </div>
+              </div>
+            }
+          } @else {
+            <div class="empty-state">
+              <div class="empty-icon-wrapper">
+                <svg viewBox="0 0 24 24" width="48" height="48" class="empty-icon">
+                  <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                </svg>
+              </div>
+              <h4>No Transactions Yet</h4>
+              <p>Add your first expense to see your overview.</p>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Row 2: Charts Side-by-Side -->
+      <div class="grid-card chart-card main-chart" data-tooltip="Visual history of your spending patterns over time">
+        <div class="card-header trends-header">
+          <div class="header-main">
+            <h3>Spending Trends</h3>
+            <div class="period-pills">
+              <button [class.active]="chartPeriod() === 'daily'" (click)="setPeriod('daily')">Day</button>
+              <button [class.active]="chartPeriod() === 'weekly'" (click)="setPeriod('weekly')">Week</button>
+              <button [class.active]="chartPeriod() === 'monthly'" (click)="setPeriod('monthly')">Month</button>
+              <button [class.active]="chartPeriod() === 'yearly'" (click)="setPeriod('yearly')">Year</button>
+            </div>
+          </div>
+          <div class="header-insight" data-tooltip="Total sum of expenses for the selected timeframe">
+            <span class="insight-label">Period Total</span>
+            <span class="insight-value">{{ getCurrencySymbol(currentCurrency()) }}{{ periodTotal() | number:'1.2-2' }}</span>
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas baseChart
+            [data]="barChartData"
+            [options]="barChartOptions"
+            [type]="'line'">
+          </canvas>
+        </div>
+      </div>
+
+      <div class="grid-card chart-card category-chart" data-tooltip="Spending distribution across different categories">
+        <div class="card-header">
+          <h3>Categories</h3>
+        </div>
+        
+        @if (expenses().length > 0) {
+          <div class="category-new-layout">
+            <!-- Row 1: Chart and Insights -->
+            <div class="cat-top-section">
+              <div class="cat-chart-box">
+                <div class="chart-container mini">
+                  <canvas baseChart
+                    [data]="doughnutChartData"
+                    [options]="doughnutChartOptions"
+                    [type]="'doughnut'">
+                  </canvas>
+                </div>
+              </div>
+
+              <div class="cat-insights-box">
+                @if (categoryInsights(); as insights) {
+                  <div class="insight-card-mini" data-tooltip="The category where you spent the most money">
+                    <span class="insight-mini-label">Highest Spending</span>
+                    <div class="insight-mini-content">
+                      <div class="insight-mini-icon" [style.background]="insights.highest.color">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" [attr.d]="getCategoryIcon(insights.highest.name)" /></svg>
+                      </div>
+                      <div class="insight-mini-details">
+                        <span class="insight-mini-name">{{ insights.highest.name }}</span>
+                        <span class="insight-mini-value">{{ getCurrencySymbol(currentCurrency()) }}{{ insights.highest.amount | number:'1.0-0' }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="insight-card-mini" data-tooltip="The category you spend on most frequently">
+                    <span class="insight-mini-label">Most Frequent</span>
+                    <div class="insight-mini-content">
+                      <div class="insight-mini-icon" [style.background]="insights.frequent.color">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" [attr.d]="getCategoryIcon(insights.frequent.name)" /></svg>
+                      </div>
+                      <div class="insight-mini-details">
+                        <span class="insight-mini-name">{{ insights.frequent.name }}</span>
+                        <span class="insight-mini-value">{{ insights.frequent.count }} Trx</span>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Row 2: Full Width List -->
+            <div class="cat-bottom-section">
+              <div class="category-legend-horizontal">
+                @for (stat of categoryStats(); track stat.name) {
+                  <div class="legend-item-modern" [style.--cat-color]="stat.color">
+                    <div class="legend-item-top">
+                      <div class="legend-left">
+                        <div class="legend-icon">
+                          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" [attr.d]="getCategoryIcon(stat.name)" /></svg>
+                        </div>
+                        <div class="legend-text">
+                          <span class="legend-name">{{ stat.name }}</span>
+                          <span class="legend-count">{{ stat.count }} trx</span>
+                        </div>
+                      </div>
+                      <div class="legend-right">
+                        <span class="legend-amount">{{ getCurrencySymbol(currentCurrency()) }}{{ stat.amount | number:'1.2-2' }}</span>
+                        <span class="legend-pct">{{ stat.percentage | number:'1.0-0' }}%</span>
+                      </div>
+                    </div>
+                    <div class="legend-progress-container">
+                      <div class="legend-progress-bar">
+                        <div class="legend-progress-fill" [style.width]="stat.percentage + '%'" [style.background]="stat.color">
+                          <div class="progress-glow"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="empty-state">
+            <div class="empty-icon-wrapper">
+              <svg viewBox="0 0 24 24" width="48" height="48" class="empty-icon">
+                <path fill="currentColor" d="M11,2V22C5.9,21.5 2,17.2 2,12C2,6.8 5.9,2.5 11,2M13,2C15.9,2 18.4,3.4 20.1,5.6L13,12.7V2M20.1,18.4C18.4,20.6 15.9,22 13,22V15.3L20.1,18.4Z" />
+              </svg>
+            </div>
+            <h4>Analysis Unavailable</h4>
+            <p>Add your first transaction to see a categorical breakdown of your spending habits.</p>
+          </div>
+        }
+      </div>
+      <!-- Row 3: Account & Method Analysis -->
+      <div class="grid-card chart-card analysis-card" data-tooltip="Detailed breakdown of spending by bank accounts and payment types">
+        <div class="card-header">
+          <h3>Analysis Deep-Dive</h3>
+          <p class="subtitle">Accounts & Payment Methods</p>
+        </div>
+
+        <div class="analysis-grid">
+          <div class="analysis-sub-card" data-tooltip="Distribution of your money across different bank accounts">
+            <span class="sub-card-label">Bank Accounts</span>
+            <div class="chart-container mini-fixed">
+              <canvas baseChart
+                [data]="accountChartData"
+                [options]="accountChartOptions"
+                [type]="'polarArea'">
+              </canvas>
+            </div>
+            <div class="chart-legend-mini">
+              @for (label of accountChartData.labels; track label; let i = $index) {
+                <div class="mini-legend-item" [attr.data-tooltip]="'Total balance in ' + label">
+                  <span class="dot" [style.background]="getAccountColor(i)"></span>
+                  <span class="name">{{ label }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="analysis-sub-card" data-tooltip="Comparison of spending across different payment methods">
+            <span class="sub-card-label">Payment Modes</span>
+            <div class="chart-container mini-fixed bar-mode">
+              <canvas baseChart
+                [data]="methodChartData"
+                [options]="methodChartOptions"
+                [type]="'bar'">
+              </canvas>
+            </div>
+            <div class="summary-stats">
+              @for (label of methodChartData.labels; track label; let i = $index) {
+                <div class="mode-stat" [attr.data-tooltip]="'Total spent using ' + label">
+                  <span class="mode-name">{{ label }}</span>
+                  <span class="mode-val">{{ getCurrencySymbol(currentCurrency()) }}{{ getMethodDataValue(i) | number:'1.0-0' }}</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="analysis-sub-card insights-sub-card" data-tooltip="AI-driven observations based on your recent spending habits">
+            <span class="sub-card-label">Smart Insights</span>
+            @if (smartInsights(); as insights) {
+              <div class="insights-container">
+                <div class="insight-pill" data-tooltip="The single largest transaction recorded this period">
+                  <div class="insight-icon-box orange">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,2L4.5,20.29L5.21,21L12,18L18.79,21L19.5,20.29L12,2Z" /></svg>
+                  </div>
+                  <div class="insight-content">
+                    <span class="insight-label">Highest Expense</span>
+                    <span class="insight-val">{{ getCurrencySymbol(currentCurrency()) }}{{ insights.highestTx.amount | number:'1.2-2' }}</span>
+                    <span class="insight-meta">{{ insights.highestTx.description }}</span>
+                  </div>
+                </div>
+
+                <div class="insight-pill" data-tooltip="Your average daily spending run rate for the current month">
+                  <div class="insight-icon-box purple">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M7,2H17A2,2 0 0,1 19,4V20A2,2 0 0,1 17,22H7A2,2 0 0,1 5,20V4A2,2 0 0,1 7,2M7,4V8H17V4H7M7,10V12H9V10H7M11,10V12H13V10H11M15,10V12H17V10H15M7,14V16H9V14H7M11,14V16H13V14H11M15,14V16H17V14H15M7,18V20H9V18H7M11,18V20H13V18H11M15,18V20H17V18H15Z" /></svg>
+                  </div>
+                  <div class="insight-content">
+                    <span class="insight-label">Avg Daily Spend</span>
+                    <span class="insight-val">{{ getCurrencySymbol(currentCurrency()) }}{{ insights.avgDaily | number:'1.0-0' }}</span>
+                  </div>
+                </div>
+
+                <div class="insight-pill" data-tooltip="The day of the week when you typically spend the most">
+                  <div class="insight-icon-box indigo">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22M15,13H12V8H11V14H15V13Z" /></svg>
+                  </div>
+                  <div class="insight-content">
+                    <span class="insight-label">Top Spend Day</span>
+                    <span class="insight-val">{{ insights.topDay }}</span>
+                  </div>
+                </div>
+
+                <div class="insight-pill" data-tooltip="Total number of expenses logged in the current view">
+                  <div class="insight-icon-box pink">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M7,15H9V17H7V15M11,15H13V17H11V15M15,15H17V17H15V15M7,11H9V13H7V11M11,11H13V13H11V11M15,11H17V13H15V11M19,3H18V1H16V3H8V1H6V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,19H5V8H19V19Z" /></svg>
+                  </div>
+                  <div class="insight-content">
+                    <span class="insight-label">Total Transactions</span>
+                    <span class="insight-val">{{ insights.totalCount }} Entries</span>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <div class="empty-insights">
+                <p>Log more transactions to see smart insights.</p>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal for New/Edit Payment Method -->
+  @if (isInstrumentModalOpen()) {
+    <div class="modal-overlay" (click)="closeInstrumentModal()">
+      <div class="modal-content liquid-glass" (click)="$event.stopPropagation()">
+        <h3>{{ editingInstrumentId() ? 'Edit Payment Method' : 'New Payment Method' }}</h3>
+        <p>{{ editingInstrumentId() ? 'Update your card or account details' : 'Add a personalized card or account' }}</p>
+        
+        <div class="modal-form">
+          <div class="input-field">
+            <label>Name (e.g., HDFC Regalia, personal@upi)</label>
+            <input type="text" [(ngModel)]="newInstrument.name" placeholder="Enter name...">
+          </div>
+          
+          <div class="form-row">
+            <div class="input-field custom-dropdown">
+              <label>Type</label>
+              <div class="dropdown-trigger" (click)="isModalTypeOpen.set(!isModalTypeOpen()); isModalAccountOpen.set(false)">
+                <span>{{ newInstrument.type }}</span>
+                <svg viewBox="0 0 24 24" width="20" height="20" [class.open]="isModalTypeOpen()"><path fill="currentColor" d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" /></svg>
+              </div>
+              @if (isModalTypeOpen()) {
+                <div class="dropdown-menu liquid-glass">
+                  @for (type of paymentTypes; track type) {
+                    <div class="dropdown-item" (click)="newInstrument.type = type; isModalTypeOpen.set(false)" [class.active]="newInstrument.type === type">
+                      {{ type }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="input-field custom-dropdown">
+              <label>Link to Bank/Account</label>
+              <div class="dropdown-trigger" (click)="isModalAccountOpen.set(!isModalAccountOpen()); isModalTypeOpen.set(false)">
+                <span>{{ newInstrument.accountName || 'No Account' }}</span>
+                <svg viewBox="0 0 24 24" width="20" height="20" [class.open]="isModalAccountOpen()"><path fill="currentColor" d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" /></svg>
+              </div>
+              @if (isModalAccountOpen()) {
+                <div class="dropdown-menu liquid-glass">
+                  <div class="dropdown-item" (click)="newInstrument.accountName = undefined; isModalAccountOpen.set(false)" [class.active]="!newInstrument.accountName">
+                    No Account
+                  </div>
+                  @for (acc of accounts(); track acc) {
+                    <div class="dropdown-item" (click)="newInstrument.accountName = acc; isModalAccountOpen.set(false)" [class.active]="newInstrument.accountName === acc">
+                      {{ acc }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+          
+          <div class="modal-actions">
+            <button class="cancel-btn" (click)="closeInstrumentModal()">Cancel</button>
+            <button class="submit-btn" (click)="addPersonalizedInstrument()">{{ editingInstrumentId() ? 'Update Method' : 'Save Method' }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

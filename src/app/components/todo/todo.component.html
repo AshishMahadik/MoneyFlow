@@ -1,0 +1,137 @@
+<div class="dashboard-wrapper">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">M</div>
+      <span>MoneyFlow</span>
+    </div>
+    <nav class="side-nav">
+      <a class="nav-item" routerLink="/">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z" /></svg>
+        Dashboard
+      </a>
+      <a class="nav-item" routerLink="/transactions">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z" /></svg>
+        Transactions
+      </a>
+      <a class="nav-item active" routerLink="/todos">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M7,10L12,15L17,10H7Z" /></svg>
+        Todo Tasks
+      </a>
+    </nav>
+
+    <div class="currency-selector" data-tooltip="Change the currency for all displays">
+      <label>Display Currency</label>
+      <div class="currency-pills">
+        @for (c of currencies; track c) {
+          <button 
+            [class.active]="currentCurrency() === c" 
+            (click)="setCurrency(c)"
+          >{{ c }}</button>
+        }
+      </div>
+    </div>
+
+    <div class="theme-toggle-section">
+      <label>Appearance</label>
+      <button class="theme-toggle-btn" (click)="themeService.toggleTheme()" [attr.data-tooltip]="themeService.isDarkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+        @if (themeService.isDarkMode()) {
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" /></svg>
+          Dark Mode
+        } @else {
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,4.39L12,6.78L9.61,4.39L12,2M5.64,7.05L7.05,5.64L8.46,7.05L7.05,8.46L5.64,7.05M21,12L18.61,9.61L16.22,12L18.61,14.39L21,12M18.36,16.95L16.95,18.36L15.54,16.95L16.95,15.54L18.36,16.95M12,22L9.61,19.61L12,17.22L14.39,19.61L12,22M5.64,16.95L7.05,18.36L8.46,16.95L7.05,15.54L5.64,16.95M3,12L5.39,14.39L7.78,12L5.39,9.61L3,12M18.36,7.05L16.95,5.64L15.54,7.05L16.95,8.46L18.36,7.05Z" /></svg>
+          Light Mode
+        }
+      </button>
+    </div>
+  </aside>
+
+  <main class="dashboard-content">
+    <header class="top-bar">
+      <div class="welcome">
+        <h2>Tasks</h2>
+        <p>Keep track of your pending to-dos.</p>
+      </div>
+    </header>
+
+    <div class="todo-grid">
+      <div class="grid-card todo-card">
+        <div class="header-section">
+          <div class="input-group">
+            <input 
+              type="text" 
+              placeholder="What needs to be done?" 
+              (keyup.enter)="addTodo($event)"
+              autofocus
+            >
+            <span class="input-hint">Press Enter to add</span>
+          </div>
+        </div>
+
+        <div class="main-section">
+          @if (filteredTodos().length > 0) {
+            <ul class="todo-list">
+              @for (todo of filteredTodos(); track todo.id) {
+                <li class="todo-item" [class.completed]="todo.completed">
+                  <div class="view">
+                    <input 
+                      type="checkbox" 
+                      [checked]="todo.completed" 
+                      (change)="toggleTodo(todo.id)"
+                      class="toggle"
+                    >
+                    <label>{{ todo.title }}</label>
+                    <button class="destroy" (click)="removeTodo(todo.id)">
+                      <svg viewBox="0 0 24 24" width="20" height="20">
+                        <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19V4M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                      </svg>
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" width="64" height="64">
+                <path fill="currentColor" d="M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V5H19V19M7,10H17V12H7V10M7,14H17V16H7V14M7,6H17V8H7V6" />
+              </svg>
+              @if (allTodosCount() === 0) {
+                <p>No tasks yet</p>
+                <span class="sub-text">Add your first task above to stay organized!</span>
+              } @else {
+                <p>All caught up!</p>
+                <span class="sub-text">No tasks match your current filter.</span>
+              }
+            </div>
+          }
+        </div>
+
+        <footer class="todo-footer">
+          <span class="todo-count">
+            <strong>{{ activeCount() }}</strong> {{ activeCount() === 1 ? 'item' : 'items' }} left
+          </span>
+          
+          <div class="filters">
+            <button 
+              [class.selected]="filter() === 'all'" 
+              (click)="setFilter('all')"
+            >All</button>
+            <button 
+              [class.selected]="filter() === 'active'" 
+              (click)="setFilter('active')"
+            >Active</button>
+            <button 
+              [class.selected]="filter() === 'completed'" 
+              (click)="setFilter('completed')"
+            >Completed</button>
+          </div>
+
+          @if (completedCount() > 0) {
+            <button class="clear-completed" (click)="clearCompleted()">
+              Clear completed
+            </button>
+          }
+        </footer>
+      </div>
+    </div>
+  </main>
+</div>

@@ -1,0 +1,12 @@
+:host {
+  display: block;
+  font-family: 'Raleway', sans-serif;
+  min-height: 100vh;
+  background: var(--bg-gradient);
+  color: var(--text-main);
+}
+
+* {
+  font-family: 'Raleway', sans-serif;
+  box-sizing: border-box;
+}
