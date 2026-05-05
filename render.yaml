@@ -12,4 +12,8 @@ services:
     name: angular-frontend
     runtime: static
     buildCommand: npm install && npm run build
-    publishPath: dist/your-angular-app-name/browser
+    staticPublishPath: dist/your-angular-app-name/browser
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
