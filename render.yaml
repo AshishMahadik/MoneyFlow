@@ -5,11 +5,11 @@ services:
     runtime: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
 
   # Frontend: Angular
-  - type: static_site
+  - type: web
     name: angular-frontend
-    runtime: node
+    runtime: static
     buildCommand: npm install && npm run build
-    publishPath: dist/your-angular-project-name/browser
+    publishPath: dist/your-angular-app-name/browser
