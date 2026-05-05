@@ -42,29 +42,29 @@ export class TodoComponent {
   public readonly activeCount = this.todoService.activeCount;
   public readonly completedCount = this.todoService.completedCount;
 
-  addTodo(event: Event) {
+  async addTodo(event: Event) {
     const input = event.target as HTMLInputElement;
     const title = input.value.trim();
     if (title) {
-      this.todoService.addTodo(title);
+      await this.todoService.addTodo(title);
       input.value = '';
     }
   }
 
-  toggleTodo(id: string) {
-    this.todoService.toggleTodo(id);
+  async toggleTodo(id: string) {
+    await this.todoService.toggleTodo(id);
   }
 
-  removeTodo(id: string) {
-    this.todoService.removeTodo(id);
+  async removeTodo(id: string) {
+    await this.todoService.removeTodo(id);
   }
 
   setFilter(type: FilterType) {
     this.filter.set(type);
   }
 
-  clearCompleted() {
-    this.todoService.clearCompleted();
+  async clearCompleted() {
+    await this.todoService.clearCompleted();
   }
 
   setCurrency(c: Currency) {

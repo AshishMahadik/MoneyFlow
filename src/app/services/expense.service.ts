@@ -1,6 +1,8 @@
 import { Injectable, signal, computed, effect, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { Expense, ExpenseCategory, PaymentType, PaymentInstrument } from '../models/expense';
+import { firstValueFrom } from 'rxjs';
 
 export type Currency = 'USD' | 'EUR' | 'GBP' | 'INR';
 
@@ -8,6 +10,8 @@ export type Currency = 'USD' | 'EUR' | 'GBP' | 'INR';
   providedIn: 'root'
 })
 export class ExpenseService {
+  private readonly API_URL = 'http://localhost:8000/expenses';
+  private readonly METHODS_API_URL = 'http://localhost:8000/payment-methods';
   private readonly STORAGE_KEY = 'expense_app_data_v4';
   private readonly CURRENCY_KEY = 'expense_app_currency';
   private readonly LIMIT_KEY = 'expense_app_monthly_limit';
@@ -16,6 +20,7 @@ export class ExpenseService {
   
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
+  private readonly http = inject(HttpClient);
   
   private readonly _expenses = signal<Expense[]>([]);
   public readonly expenses = this._expenses.asReadonly();
@@ -201,6 +206,8 @@ export class ExpenseService {
   constructor() {
     if (this.isBrowser) {
       this.loadFromStorage();
+      this.loadFromApi();
+      this.loadMethodsFromApi();
       
       effect(() => {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this._expenses()));
@@ -221,6 +228,61 @@ export class ExpenseService {
       effect(() => {
         localStorage.setItem(this.INSTRUMENTS_KEY, JSON.stringify(this.paymentInstruments()));
       });
+    }
+  }
+
+  private async loadFromApi() {
+    try {
+      const apiExpenses = await firstValueFrom(this.http.get<Expense[]>(this.API_URL));
+      const localExpenses = this._expenses();
+      
+      // Find expenses that exist locally but not in the API
+      const missingInApi = localExpenses.filter(local => !apiExpenses.some(api => api.id === local.id));
+      
+      // Push missing local expenses to API
+      for (const exp of missingInApi) {
+        try {
+          await firstValueFrom(this.http.post(this.API_URL + '/', exp));
+          apiExpenses.push(exp);
+        } catch (e) {
+          console.error('Failed to sync offline expense to API', e);
+          apiExpenses.push(exp); // Keep it locally even if API fails
+        }
+      }
+
+      this._expenses.set(apiExpenses.sort((a, b) => b.date - a.date));
+    } catch (e) {
+      console.error('Failed to load expenses from API', e);
+    }
+  }
+
+  private async loadMethodsFromApi() {
+    try {
+      const apiMethods = await firstValueFrom(this.http.get<PaymentInstrument[]>(this.METHODS_API_URL));
+      const localMethods = this.paymentInstruments();
+      
+      const missingInApi = localMethods.filter(local => !apiMethods.some(api => api.id === local.id) && local.id !== '1');
+      
+      for (const method of missingInApi) {
+        try {
+          await firstValueFrom(this.http.post(this.METHODS_API_URL + '/', method));
+          apiMethods.push(method);
+        } catch (e) {
+          console.error('Failed to sync offline payment method to API', e);
+          apiMethods.push(method);
+        }
+      }
+
+      if (apiMethods.length > 0) {
+        // Ensure default 'Cash' (id: '1') is always present
+        const hasCash = apiMethods.some(m => m.id === '1');
+        if (!hasCash) {
+           apiMethods.unshift({ id: '1', name: 'Cash', type: 'Cash' });
+        }
+        this.paymentInstruments.set(apiMethods);
+      }
+    } catch (e) {
+      console.error('Failed to load payment methods from API', e);
     }
   }
 
@@ -283,30 +345,51 @@ export class ExpenseService {
     }
   }
 
-  addPaymentInstrument(name: string, type: PaymentType, accountName?: string) {
+  async addPaymentInstrument(name: string, type: PaymentType, accountName?: string) {
     const newInstrument: PaymentInstrument = {
       id: crypto.randomUUID(),
       name,
       type,
       accountName
     };
-    this.paymentInstruments.update(inst => [...inst, newInstrument]);
+    try {
+      await firstValueFrom(this.http.post(this.METHODS_API_URL + '/', newInstrument));
+      this.paymentInstruments.update(inst => [...inst, newInstrument]);
+    } catch (e) {
+      console.error('Failed to add payment method', e);
+      this.paymentInstruments.update(inst => [...inst, newInstrument]);
+    }
     return newInstrument;
   }
 
-  updatePaymentInstrument(id: string, name: string, type: PaymentType, accountName?: string) {
-    this.paymentInstruments.update(insts => 
-      insts.map(i => i.id === id ? { ...i, name, type, accountName } : i)
-    );
+  async updatePaymentInstrument(id: string, name: string, type: PaymentType, accountName?: string) {
+    const updated: PaymentInstrument = { id, name, type, accountName };
+    try {
+      await firstValueFrom(this.http.put(`${this.METHODS_API_URL}/${id}`, updated));
+      this.paymentInstruments.update(insts => 
+        insts.map(i => i.id === id ? updated : i)
+      );
+    } catch (e) {
+      console.error('Failed to update payment method', e);
+      this.paymentInstruments.update(insts => 
+        insts.map(i => i.id === id ? updated : i)
+      );
+    }
   }
 
-  removePaymentInstrument(id: string) {
+  async removePaymentInstrument(id: string) {
     // Prevent removing the default Cash instrument if it's ID '1'
     if (id === '1') return;
-    this.paymentInstruments.update(inst => inst.filter(i => i.id !== id));
+    try {
+      await firstValueFrom(this.http.delete(`${this.METHODS_API_URL}/${id}`));
+      this.paymentInstruments.update(inst => inst.filter(i => i.id !== id));
+    } catch (e) {
+      console.error('Failed to remove payment method', e);
+      this.paymentInstruments.update(inst => inst.filter(i => i.id !== id));
+    }
   }
 
-  addExpense(description: string, amount: number, category: ExpenseCategory, date?: number, account?: string, paymentType?: PaymentType, instrumentId?: string, paymentMethodName?: string) {
+  async addExpense(description: string, amount: number, category: ExpenseCategory, date?: number, account?: string, paymentType?: PaymentType, instrumentId?: string, paymentMethodName?: string) {
     const newExpense: Expense = {
       id: crypto.randomUUID(),
       description,
@@ -318,18 +401,54 @@ export class ExpenseService {
       instrumentId,
       paymentMethodName
     };
-    this._expenses.update(ex => [newExpense, ...ex].sort((a, b) => b.date - a.date));
+
+    try {
+      await firstValueFrom(this.http.post(this.API_URL + '/', newExpense));
+      this._expenses.update(ex => [newExpense, ...ex].sort((a, b) => b.date - a.date));
+    } catch (e) {
+      console.error('Failed to add expense to API', e);
+      // Fallback to local update
+      this._expenses.update(ex => [newExpense, ...ex].sort((a, b) => b.date - a.date));
+    }
   }
 
-  updateExpense(id: string, description: string, amount: number, category: ExpenseCategory, date?: number, account?: string, paymentType?: PaymentType, instrumentId?: string, paymentMethodName?: string) {
-    this._expenses.update(ex => {
-      const updated = ex.map(e => e.id === id ? { ...e, description, amount, category, date: date || e.date, account, paymentType, instrumentId, paymentMethodName } : e);
-      return updated.sort((a, b) => b.date - a.date);
-    });
+  async updateExpense(id: string, description: string, amount: number, category: ExpenseCategory, date?: number, account?: string, paymentType?: PaymentType, instrumentId?: string, paymentMethodName?: string) {
+    const updatedExpense: Expense = {
+      id,
+      description,
+      amount,
+      category,
+      date: date || Date.now(),
+      account,
+      paymentType,
+      instrumentId,
+      paymentMethodName
+    };
+
+    try {
+      await firstValueFrom(this.http.put(`${this.API_URL}/${id}`, updatedExpense));
+      this._expenses.update(ex => {
+        const updated = ex.map(e => e.id === id ? updatedExpense : e);
+        return updated.sort((a, b) => b.date - a.date);
+      });
+    } catch (e) {
+      console.error('Failed to update expense', e);
+      // Fallback
+      this._expenses.update(ex => {
+        const updated = ex.map(e => e.id === id ? updatedExpense : e);
+        return updated.sort((a, b) => b.date - a.date);
+      });
+    }
   }
 
-  removeExpense(id: string) {
-    this._expenses.update(ex => ex.filter(e => e.id !== id));
+  async removeExpense(id: string) {
+    try {
+      await firstValueFrom(this.http.delete(`${this.API_URL}/${id}`));
+      this._expenses.update(ex => ex.filter(e => e.id !== id));
+    } catch (e) {
+      console.error('Failed to remove expense', e);
+      this._expenses.update(ex => ex.filter(e => e.id !== id));
+    }
   }
 
   getAggregatedData(period: 'daily' | 'weekly' | 'monthly' | 'yearly') {

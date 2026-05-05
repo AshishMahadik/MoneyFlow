@@ -55,15 +55,15 @@ export class TransactionsComponent {
     return list;
   });
 
-  addOrUpdateExpense() {
+  async addOrUpdateExpense() {
     if (this.description.trim() && this.amount && this.amount > 0) {
       const id = this.editingId();
       const expenseDate = new Date(this.date).getTime();
 
       if (id) {
-        this.expenseService.updateExpense(id, this.description, this.amount, this.category, expenseDate, this.account, this.paymentType);
+        await this.expenseService.updateExpense(id, this.description, this.amount, this.category, expenseDate, this.account, this.paymentType);
       } else {
-        this.expenseService.addExpense(this.description, this.amount, this.category, expenseDate, this.account, this.paymentType);
+        await this.expenseService.addExpense(this.description, this.amount, this.category, expenseDate, this.account, this.paymentType);
       }
       this.resetForm();
     }
@@ -84,9 +84,9 @@ export class TransactionsComponent {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  removeExpense(id: string) {
+  async removeExpense(id: string) {
     if (confirm('Are you sure you want to delete this transaction?')) {
-      this.expenseService.removeExpense(id);
+      await this.expenseService.removeExpense(id);
       if (this.editingId() === id) this.resetForm();
     }
   }

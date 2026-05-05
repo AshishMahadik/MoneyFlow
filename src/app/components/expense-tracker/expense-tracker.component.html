@@ -1,46 +1,61 @@
 <div class="dashboard-wrapper">
-  <aside class="sidebar">
-    <div class="logo">
-      <div class="logo-icon">M</div>
-      <span>MoneyFlow</span>
-    </div>
-    <nav class="side-nav">
-      <a class="nav-item active" routerLink="/">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z" /></svg>
-        Dashboard
-      </a>
-      <a class="nav-item" routerLink="/transactions">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z" /></svg>
-        Transactions
-      </a>
-      <a class="nav-item" routerLink="/todos">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M7,10L12,15L17,10H7Z" /></svg>
-        Todo Tasks
-      </a>
-    </nav>
-    <div class="currency-selector" data-tooltip="Change the currency for all displays">
-      <label>Display Currency</label>
-      <div class="currency-pills">
-        @for (c of currencies; track c) {
-          <button 
-            [class.active]="currentCurrency() === c" 
-            (click)="setCurrency(c)"
-          >{{ c }}</button>
-        }
+  <aside class="sidebar" [class.menu-open]="isMobileMenuOpen()">
+    <div class="sidebar-header">
+      <div class="logo">
+        <div class="logo-icon">M</div>
+        <span>MoneyFlow</span>
       </div>
-    </div>
-
-    <div class="theme-toggle-section">
-      <label>Appearance</label>
-      <button class="theme-toggle-btn" (click)="themeService.toggleTheme()" [attr.data-tooltip]="themeService.isDarkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
-        @if (themeService.isDarkMode()) {
-          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" /></svg>
-          Dark Mode
+      <button class="menu-toggle" [class.active]="isMobileMenuOpen()" (click)="isMobileMenuOpen.set(!isMobileMenuOpen())">
+        @if (isMobileMenuOpen()) {
+          <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" /></svg>
         } @else {
-          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,4.39L12,6.78L9.61,4.39L12,2M5.64,7.05L7.05,5.64L8.46,7.05L7.05,8.46L5.64,7.05M21,12L18.61,9.61L16.22,12L18.61,14.39L21,12M18.36,16.95L16.95,18.36L15.54,16.95L16.95,15.54L18.36,16.95M12,22L9.61,19.61L12,17.22L14.39,19.61L12,22M5.64,16.95L7.05,18.36L8.46,16.95L7.05,15.54L5.64,16.95M3,12L5.39,14.39L7.78,12L5.39,9.61L3,12M18.36,7.05L16.95,5.64L15.54,7.05L16.95,8.46L18.36,7.05Z" /></svg>
-          Light Mode
+          <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12,16A2,2 0 0,1 14,18A2,2 0 0,1 12,20A2,2 0 0,1 10,18A2,2 0 0,1 12,16M12,10A2,2 0 0,1 14,12A2,2 0 0,1 12,14A2,2 0 0,1 10,12A2,2 0 0,1 12,10M12,4A2,2 0 0,1 14,6A2,2 0 0,1 12,8A2,2 0 0,1 10,6A2,2 0 0,1 12,4Z" /></svg>
         }
       </button>
+    </div>
+
+    <div class="collapsible-content">
+      <nav class="side-nav">
+        <a class="nav-item active" routerLink="/" (click)="isMobileMenuOpen.set(false)">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M10,20V14H14V20H19V12H22L12,3L2,12H5V20H10Z" /></svg>
+          Dashboard
+        </a>
+        <a class="nav-item" routerLink="/transactions" (click)="isMobileMenuOpen.set(false)">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M13,9V3.5L18.5,9M6,2C4.89,2 4,2.89 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6Z" /></svg>
+          Transactions
+        </a>
+        <a class="nav-item" routerLink="/todos" (click)="isMobileMenuOpen.set(false)">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M7,10L12,15L17,10H7Z" /></svg>
+          Todo Tasks
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="currency-selector" data-tooltip="Change the currency for all displays">
+          <label>Display Currency</label>
+          <div class="currency-pills">
+            @for (c of currencies; track c) {
+              <button 
+                [class.active]="currentCurrency() === c" 
+                (click)="setCurrency(c)"
+              >{{ c }}</button>
+            }
+          </div>
+        </div>
+
+        <div class="theme-toggle-section">
+          <label>Appearance</label>
+          <button class="theme-toggle-btn" (click)="themeService.toggleTheme()" [attr.data-tooltip]="themeService.isDarkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+            @if (themeService.isDarkMode()) {
+              <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,18C11.11,18 10.26,17.8 9.5,17.45C11.56,16.5 13,14.42 13,12C13,9.58 11.56,7.5 9.5,6.55C10.26,6.2 11.11,6 12,6A6,6 0 0,1 18,12A6,6 0 0,1 12,18M20,8.69V4H15.31L12,0.69L8.69,4H4V8.69L0.69,12L4,15.31V20H8.69L12,23.31L15.31,20H20V15.31L23.31,12L20,8.69Z" /></svg>
+              Dark Mode
+            } @else {
+              <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,4.39L12,6.78L9.61,4.39L12,2M5.64,7.05L7.05,5.64L8.46,7.05L7.05,8.46L5.64,7.05M21,12L18.61,9.61L16.22,12L18.61,14.39L21,12M18.36,16.95L16.95,18.36L15.54,16.95L16.95,15.54L18.36,16.95M12,22L9.61,19.61L12,17.22L14.39,19.61L12,22M5.64,16.95L7.05,18.36L8.46,16.95L7.05,15.54L5.64,16.95M3,12L5.39,14.39L7.78,12L5.39,9.61L3,12M18.36,7.05L16.95,5.64L15.54,7.05L16.95,8.46L18.36,7.05Z" /></svg>
+              Light Mode
+            }
+          </button>
+        </div>
+      </div>
     </div>
   </aside>
 

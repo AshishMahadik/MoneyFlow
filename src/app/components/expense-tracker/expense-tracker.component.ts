@@ -343,6 +343,7 @@ export class ExpenseTrackerComponent implements OnDestroy {
   public date = new Date().toISOString().split('T')[0];
   public editingId = signal<string | null>(null);
   
+  public isMobileMenuOpen = signal(false);
   public isCategoryOpen = signal(false);
   public isInstrumentOpen = signal(false);
   public isDescOpen = signal(false);
@@ -497,33 +498,33 @@ export class ExpenseTrackerComponent implements OnDestroy {
     };
   }
 
-  addOrUpdateExpense() {
+  async addOrUpdateExpense() {
     if (this.description().trim() && this.amount && this.amount > 0) {
       const id = this.editingId();
       const expenseDate = new Date(this.date).getTime();
       const inst = this.paymentInstruments().find(i => i.id === this.selectedInstrumentId());
       
       if (id) {
-        this.expenseService.updateExpense(id, this.description(), this.amount, this.category, expenseDate, inst?.accountName, inst?.type, inst?.id, inst?.name);
+        await this.expenseService.updateExpense(id, this.description(), this.amount, this.category, expenseDate, inst?.accountName, inst?.type, inst?.id, inst?.name);
       } else {
-        this.expenseService.addExpense(this.description(), this.amount, this.category, expenseDate, inst?.accountName, inst?.type, inst?.id, inst?.name);
+        await this.expenseService.addExpense(this.description(), this.amount, this.category, expenseDate, inst?.accountName, inst?.type, inst?.id, inst?.name);
       }
       this.resetForm();
     }
   }
 
-  addPersonalizedInstrument() {
+  async addPersonalizedInstrument() {
     if (this.newInstrument.name.trim()) {
       const id = this.editingInstrumentId();
       if (id) {
-        this.expenseService.updatePaymentInstrument(
+        await this.expenseService.updatePaymentInstrument(
           id,
           this.newInstrument.name.trim(),
           this.newInstrument.type,
           this.newInstrument.accountName
         );
       } else {
-        const inst = this.expenseService.addPaymentInstrument(
+        const inst = await this.expenseService.addPaymentInstrument(
           this.newInstrument.name.trim(),
           this.newInstrument.type,
           this.newInstrument.accountName
@@ -544,11 +545,11 @@ export class ExpenseTrackerComponent implements OnDestroy {
     this.isInstrumentModalOpen.set(true);
   }
 
-  removeInstrument(id: string, event: Event) {
+  async removeInstrument(id: string, event: Event) {
     event.stopPropagation();
     if (id === '1') return; // Cannot delete Cash
     if (confirm('Delete this payment method?')) {
-      this.expenseService.removePaymentInstrument(id);
+      await this.expenseService.removePaymentInstrument(id);
       if (this.selectedInstrumentId() === id) {
         this.selectedInstrumentId.set('1'); // Fallback to Cash
       }
@@ -582,9 +583,9 @@ export class ExpenseTrackerComponent implements OnDestroy {
     this.date = new Date(expense.date).toISOString().split('T')[0];
   }
 
-  removeExpense(id: string) {
+  async removeExpense(id: string) {
     if (confirm('Delete this transaction?')) {
-      this.expenseService.removeExpense(id);
+      await this.expenseService.removeExpense(id);
       if (this.editingId() === id) this.resetForm();
     }
   }
