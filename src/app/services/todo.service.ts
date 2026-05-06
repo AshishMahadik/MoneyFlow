@@ -8,7 +8,7 @@ import { firstValueFrom } from 'rxjs';
   providedIn: 'root'
 })
 export class TodoService {
-  private readonly API_URL = 'http://localhost:8000/todos';
+  private readonly API_URL = 'https://moneyflow-kr07.onrender.com/todos';
   private readonly STORAGE_KEY = 'moneyflow_tasks';
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
