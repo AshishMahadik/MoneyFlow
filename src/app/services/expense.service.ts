@@ -10,8 +10,8 @@ export type Currency = 'USD' | 'EUR' | 'GBP' | 'INR';
   providedIn: 'root'
 })
 export class ExpenseService {
-  private readonly API_URL = 'https://moneyflow-kr07.onrender.com/expenses';
-  private readonly METHODS_API_URL = 'https://moneyflow-kr07.onrender.com/payment-methods';
+  private readonly API_URL = 'https://moneyflowbe.ashishmahadik.in/expenses';
+  private readonly METHODS_API_URL = 'https://moneyflowbe.ashishmahadik.in/payment-methods';
   private readonly STORAGE_KEY = 'expense_app_data_v4';
   private readonly CURRENCY_KEY = 'expense_app_currency';
   private readonly LIMIT_KEY = 'expense_app_monthly_limit';
